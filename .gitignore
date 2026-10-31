@@ -17,6 +17,8 @@ _local/
 *.png
 # 内置 SDK 自带的资源文件仍需保留
 !pageindex/flash/assets/*.png
+# README 用到的演示截图
+!docs/*.png
 
 # ===== Python =====
 __pycache__/
