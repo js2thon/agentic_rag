@@ -1,0 +1,20 @@
+[server]
+# 关掉文件监听: Streamlit 默认会在每轮脚本执行后扫描项目目录(含 .venv 里上万个文件),
+# 实测把"刷新页面到左侧数据集出现"从 ~12s 拖到 ~0.5s。
+# 代价: 改完 app.py 不会自动 rerun, 刷新页面(F5)即可加载新代码。
+fileWatcherType = "none"
+
+# 排除大目录, 万一以后要开回监听也只扫业务源码
+folderWatchBlacklist = [".venv", ".pageindex", "uploads", "__pycache__", "assets", "cookbook", "examples", "tests", ".git", ".github"]
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+# 默认主色是 Streamlit 的红色, 输入框聚焦时会描一圈红边, 像报错;
+# 换成近黑, 和"停止"键/正文的配色一致
+primaryColor = "#111111"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f7f8fa"
+textColor = "#1f2328"
+
