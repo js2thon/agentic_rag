@@ -119,12 +119,16 @@ def dataset_blurb(cat: str, items: list) -> str:
 
 
 def set_scope(ids):
-    """问答范围的唯一写入口(只由主区「数据集市场」调用)"""
+    """问答范围的唯一写入口(只由主区「数据集市场」调用)
+
+    只改范围, 不清会话历史: 数据集市场在对话中也常驻, 用户会在问下一个
+    问题前勾选/取消数据集, 若此时清空历史, 上下文就断了。
+    新范围对本轮之后的问题生效。
+    """
     new = sorted(ids) if ids else None
     if new == st.session_state.doc_id:
         return
     st.session_state.doc_id = new
-    st.session_state.messages = []
     # 范围控件靠 rev 换 key 重建, 否则控件仍停留在旧状态
     st.session_state.pi_scope_rev = st.session_state.get("pi_scope_rev", 0) + 1
     st.rerun()
@@ -308,11 +312,15 @@ section[data-testid="stSidebar"] .pi-file-p {
 }
 
 /* ---------- 对话滚动区: 高度按视口算, 随窗口/缩放自适应 ---------- */
-/* 注意: 真正带高度的是外层 LayoutWrapper(flex:0 0 520px), 内层只负责滚动 */
+/* 注意: 真正带高度的是外层 LayoutWrapper(flex:0 0 520px), 内层只负责滚动。
+   --pi-hist-offset = 顶栏 + 输入条 + 间距等固定占位; 对话态若数据集市场在场,
+   占位再加一档, 保证"市场 + 对话 + 输入条"整体刚好一屏, 不产生整页滚动。 */
+body {--pi-hist-offset: 210px;}
+body:has(.pi-chat-mode):has([class*="st-key-pi_market"]) {--pi-hist-offset: 340px;}
 .stMainBlockContainer [data-testid="stLayoutWrapper"]:has(.st-key-pi_history) {
   flex: 0 0 auto !important;
-  height: calc(100vh - 210px) !important;
-  min-height: 220px;
+  height: calc(100vh - var(--pi-hist-offset)) !important;
+  min-height: 180px;
 }
 .stMainBlockContainer .st-key-pi_history {
   height: 100% !important;
@@ -368,29 +376,38 @@ section[data-testid="stSidebar"] .pi-file-p {
 }
 
 /* ---------- 两态切换: 只切 CSS 显隐, 不增删元素 ---------- */
-/* 空会话(<body> 里没有 .pi-chat-mode) */
+/* 数据集市场在两个状态下都钉在主区顶部(位置不变), 便于追问前继续勾选范围;
+   空会话(<body> 里没有 .pi-chat-mode)只是把"欢迎区"在市场下方的剩余空间里居中 */
 body:not(:has(.pi-chat-mode)) .stMainBlockContainer [data-testid="stLayoutWrapper"]:has(.st-key-pi_history) {
   display: none !important;          /* 空会话不要对话区 */
 }
 
-/* 空会话: "欢迎区 + 输入条"作为一组垂直居中(ChatGPT 式) */
+/* 空会话: 主区占满"输入条以上"的空间, 欢迎区在市场下方的剩余空间垂直居中 */
 body:not(:has(.pi-chat-mode)) [data-testid="stAppScrollToBottomContainer"] {
   display: flex; flex-direction: column;
-  justify-content: safe center;      /* 视口过矮时不会把内容顶出可视区 */
 }
 body:not(:has(.pi-chat-mode)) [data-testid="stAppScrollToBottomContainer"] > div:not([data-testid]) {
   flex: 0 0 auto;                    /* 关掉 Streamlit 用来自动撑满的弹性占位 */
 }
-body:not(:has(.pi-chat-mode)) [data-testid="stMainBlockContainer"] {min-height: 0;}
+body:not(:has(.pi-chat-mode)) [data-testid="stMainBlockContainer"] {
+  flex: 1 0 auto;                    /* 撑满输入条以上空间(输入条高度自适应, 不写死) */
+}
+body:not(:has(.pi-chat-mode)) [data-testid="stMainBlockContainer"] > div {
+  min-height: 100%;                  /* 内层纵向块跟着撑开, 给 auto margin 留自由空间 */
+}
+body:not(:has(.pi-chat-mode)) [data-testid="stLayoutWrapper"]:has([class*="st-key-pi_welcome"]) {
+  margin-top: auto !important;       /* 欢迎区在"市场 ↔ 底部"之间垂直居中 */
+  margin-bottom: auto !important;
+}
 body:not(:has(.pi-chat-mode)) [data-testid="stBottom"] {
-  position: static !important;       /* 取消吸底, 跟着欢迎区一起居中 */
+  position: static !important;       /* 取消吸底, 落在主区下方 */
   background: transparent !important;
 }
 
-/* 对话态: 收起欢迎区、数据集市场与示例按钮, 输入条回到吸底 */
-body:has(.pi-chat-mode) .pi-hero,
-body:has(.pi-chat-mode) [class*="st-key-pi_market"],
-body:has(.pi-chat-mode) [class*="st-key-sample"] {display: none;}
+/* 对话态: 收起欢迎区(含示例按钮); 数据集市场常驻, 输入条吸底 */
+body:has(.pi-chat-mode) [data-testid="stLayoutWrapper"]:has([class*="st-key-pi_welcome"]) {
+  display: none !important;
+}
 
 /* ---------- 快捷示例按钮(仅主区): 浅色圆角块, 不抢视觉 ---------- */
 .stMainBlockContainer div[data-testid="stButton"] > button {
@@ -486,7 +503,9 @@ body:has(.pi-busy) [data-testid="stChatInputSubmitButton"] {visibility: hidden !
   .pi-tree {max-height: 300px;}
 }
 @media (max-height: 820px) {
-  .stMainBlockContainer [data-testid="stLayoutWrapper"]:has(.st-key-pi_history) {height: calc(100vh - 190px) !important;}
+  /* 矮屏: 顶栏与输入条更紧凑, 占位同步收紧(市场在场时仍额外让出卡片高度) */
+  body {--pi-hist-offset: 190px;}
+  body:has(.pi-chat-mode):has([class*="st-key-pi_market"]) {--pi-hist-offset: 320px;}
 }
 @media (max-height: 560px) {
   .pi-hero {padding: 0 0 .8rem;}
@@ -932,21 +951,22 @@ if docs:
                         elif not _checked and _ids <= _sel:
                             set_scope(_sel - _ids)
 
-st.markdown("""<div class="pi-hero">
-<h1>有什么可以帮你？</h1>
-</div>""", unsafe_allow_html=True)
+# 欢迎区(标题 + 示例问题)包进一个容器: 空会话时在市场下方居中, 对话态整体隐藏
+with st.container(key="pi_welcome"):
+    st.markdown("""<div class="pi-hero">
+    <h1>有什么可以帮你？</h1>
+    </div>""", unsafe_allow_html=True)
 
-# 快捷示例: 点一下直接提问(对话态由 CSS 隐藏)
-samples = ["这份文档的目录结构是怎样的？",
-           "第 3 章讲了什么？",
-           "用一段话总结核心结论"]
-sample_cols = st.columns([0.9, 2.2, 2.2, 2.2, 0.9], gap="small")[1:-1]
-for col, s in zip(sample_cols, samples):
-    with col:
-        if st.button(s, key=f"sample_{s}", width="stretch"):
-            # 只填进输入框, 不直接提问(下一轮 run 由 _seed 预填)
-            st.session_state.pi_seed = s
-            st.rerun()
+    # 快捷示例: 点一下只填进输入框, 不直接提交(用户可改完再回车)
+    samples = ["这份文档的目录结构是怎样的？",
+               "第 3 章讲了什么？",
+               "用一段话总结核心结论"]
+    sample_cols = st.columns([0.9, 2.2, 2.2, 2.2, 0.9], gap="small")[1:-1]
+    for col, s in zip(sample_cols, samples):
+        with col:
+            if st.button(s, key=f"sample_{s}", width="stretch"):
+                st.session_state.pi_seed = s
+                st.rerun()
 
 chat_mode = bool(msgs or pending)
 
