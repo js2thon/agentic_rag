@@ -5,7 +5,7 @@
 fileWatcherType = "none"
 
 # 排除大目录, 万一以后要开回监听也只扫业务源码
-folderWatchBlacklist = [".venv", ".pageindex", "uploads", "__pycache__", "assets", "cookbook", "examples", "tests", ".git", ".github"]
+folderWatchBlacklist = [".venv", ".pageindex", "uploads", "_local", "__pycache__", ".git", ".github"]
 
 [browser]
 gatherUsageStats = false
