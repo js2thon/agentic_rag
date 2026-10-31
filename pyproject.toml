@@ -4,7 +4,7 @@ name = "agentic_rag"
 version = "0.1.0"
 description = "Vectorless, chunk-free document QA: a tree index plus LLM navigation, packaged as a local Streamlit UI"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 keywords = ["rag", "vectorless", "pageindex", "streamlit", "llm", "document-qa"]
 classifiers = [

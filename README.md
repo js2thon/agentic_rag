@@ -5,7 +5,7 @@
 基于 [PageIndex](https://github.com/VectifyAI/PageIndex) 的推理式检索（reasoning-based retrieval）能力，用 Streamlit 把「模型自主翻阅文档」这套 agentic 检索流程做成一上手就能用的本地知识库界面。
 
 <p>
-  <img alt="python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
+  <img alt="python" src="https://img.shields.io/badge/python-3.11%2B-3776ab">
   <img alt="streamlit" src="https://img.shields.io/badge/streamlit-1.x-ff4b4b">
   <img alt="license" src="https://img.shields.io/badge/license-MIT-green">
   <img alt="vectorless" src="https://img.shields.io/badge/retrieval-vectorless-6f42c1">
@@ -114,7 +114,7 @@
 
 ## 快速开始
 
-要求 Python **3.10+**（CI 覆盖 3.10 / 3.12）。
+要求 Python **3.11+**（CI 覆盖 3.11 / 3.12；流式输入特性依赖 Streamlit ≥1.66，而它已不再支持 3.10）。
 
 ```bash
 git clone https://github.com/js2thon/agentic_rag.git
