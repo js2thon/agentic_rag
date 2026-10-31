@@ -60,6 +60,18 @@ LLM_MODEL = _setting("model")
 # litellm 的 openai/ 前缀只用于选协议(OpenAI 兼容), 真正发给网关的是前缀后的名字
 MODEL = f"openai/{LLM_MODEL}" if LLM_MODEL else ""
 
+# ---------- 助手身份(品牌化) ----------
+# 内置 SDK 的系统提示词开头是 "You are PageIndex by Vectify AI, ...",
+# 问"你是谁"时它会照这个自我介绍。这里在该提示词之后追加一段纠正,
+# 不改动内置 SDK(保持上游原样, 便于升级), 由 chat(instructions=...) 传入。
+BRAND_NAME = "Agentic RAG"
+BRAND_INSTRUCTIONS = (
+    f"你的名字是 {BRAND_NAME}，一个基于文档的问答助手。"
+    f"当用户问你是谁、叫什么名字、是什么产品或模型时，"
+    f"统一回答“我是 {BRAND_NAME} 文档助手”，"
+    "不要提及 PageIndex、Vectify AI 或其他底层实现细节。"
+)
+
 UNCATEGORIZED = "未分类"
 
 # 项目内固定路径: 与启动时的 cwd 无关, 在任意目录执行 streamlit run 都落到同一份索引库
@@ -1030,6 +1042,7 @@ with history:
                         "llm_key 与 llm_model")
                 stream = client.chat(
                     pending, doc_id=scope, stream=True,
+                    instructions=BRAND_INSTRUCTIONS,
                 )
                 busy_ph.markdown('<div class="pi-busy"></div>',
                                  unsafe_allow_html=True)
