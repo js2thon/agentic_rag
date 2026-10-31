@@ -2,7 +2,7 @@
 [project]
 name = "agentic_rag"
 version = "0.1.0"
-description = "Streamlit playground for PageIndex — reasoning-based, vectorless RAG with tree index"
+description = "Vectorless, chunk-free document QA: a tree index plus LLM navigation, packaged as a local Streamlit UI"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
