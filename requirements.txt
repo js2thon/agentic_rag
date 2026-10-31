@@ -1,6 +1,7 @@
 # ---- Web UI ----
-# 应用用了 width="stretch" / container(key=) 等新接口, 需要 1.49+
-streamlit>=1.49,<2
+# 应用用了 chat_input(submit_mode=...) / width="stretch" / container(key=) 等新接口,
+# 下限按实测通过的 1.66 固定, 避免装到旧版直接报 TypeError
+streamlit>=1.66,<2
 
 # ---- LLM 与工具调用(PageIndex SDK 依赖) ----
 litellm>=1.105.1,<1.106
@@ -9,6 +10,9 @@ openai>=1.70.0
 urllib3>=1.26
 openai-agents>=0.20.0
 mcp>=1.19.0,<3
+# 内置 SDK 直接 import 的两个传递依赖, 显式声明避免上游放松约束后缺失
+pydantic>=2.11,<3
+anyio>=4
 
 # ---- PDF 解析 ----
 # pymupdf  # optional

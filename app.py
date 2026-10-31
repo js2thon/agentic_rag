@@ -788,6 +788,9 @@ with st.sidebar:
                     st.session_state.pi_flash = tip
                     st.session_state.pi_docs_bust = (
                         st.session_state.get("pi_docs_bust", 0) + 1)
+                    # 新数据集要立刻出现在右侧市场: 清掉文档列表缓存(含 ttl 未过期的旧键),
+                    # 只改 bust 也能换 key, 但显式 clear 更稳, 不受缓存实现细节影响
+                    load_documents.clear()
                     st.rerun()
                 except FutureTimeout:
                     st.error(
@@ -839,6 +842,8 @@ with st.sidebar:
                     st.session_state.pi_flash = f"已删除 {len(drop)} 篇文档"
                     st.session_state.pi_docs_bust = (
                         st.session_state.get("pi_docs_bust", 0) + 1)
+                    # 删空某个数据集后, 右侧市场的卡片要同步消失
+                    load_documents.clear()
                     st.rerun()
                 except Exception as e:
                     st.error(f"删除失败: {e}")
