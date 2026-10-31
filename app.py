@@ -32,7 +32,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 from pageindex import PageIndexClient
 
 # ---------- 页面配置 ----------
-st.set_page_config(page_title="PageIndex", page_icon="🌳", layout="wide")
+st.set_page_config(page_title="Agentic RAG", page_icon="🌳", layout="wide")
 
 # ---------- 模型服务配置 ----------
 # 任意 OpenAI 兼容网关都能用: POST {base}/chat/completions, Bearer 鉴权, 请求体带 "model"。
@@ -62,10 +62,13 @@ MODEL = f"openai/{LLM_MODEL}" if LLM_MODEL else ""
 
 UNCATEGORIZED = "未分类"
 
+# 项目内固定路径: 与启动时的 cwd 无关, 在任意目录执行 streamlit run 都落到同一份索引库
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STORE_DIR = os.path.join(BASE_DIR, ".pageindex")
+
 # ---------- 数据集(目录)分组与市场卡片 ----------
 # 数据集 = 文档 metadata.category 分组; 每个数据集在主区顶部渲染成一张可选卡片。
-_DATASET_DESC_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                  "datasets.json")
+_DATASET_DESC_FILE = os.path.join(BASE_DIR, "datasets.json")
 
 
 @st.cache_data(ttl=60, show_spinner=False)
@@ -498,7 +501,7 @@ def build_client(base: str, key: str, model: str):
     return PageIndexClient(
         index={"model": model,
                "backend": {"api_key": key, "api_base": base},
-               "storage_path": ".pageindex"},
+               "storage_path": STORE_DIR},
         chat={"model": model,
               "backend": {"api_key": key, "base_url": base}},
     )
@@ -686,7 +689,7 @@ client = None   # 由 secrets/环境变量里的模型配置构建, 见下方 si
 
 # ================= 左侧边栏: 数据集管理 =================
 with st.sidebar:
-    st.markdown("### 🌳 PageIndex")
+    st.markdown("### 🌳 Agentic RAG")
     st.caption("无向量推理 RAG · 树索引")
     st.divider()
 
@@ -856,9 +859,15 @@ msgs = st.session_state.messages
 #   submit_mode="disable": 生成中输入框禁用(同 ChatGPT), 发送键灰掉;
 #   停止键由页面自己画(见下方 .st-key-pi_stop), 用 rerun 打断本轮 run,
 #   因此停止后界面能立刻干净地重渲染, 不会残留"思考中"的半截卡片。
-typed = st.chat_input("提问…", submit_mode="disable")
+# 示例问题只"填进输入框"、不直接提交: 点击后把问题写入 session_state,
+# 必须在 chat_input 实例化之前写; 预填不会触发提交(chat_input 返回 None),
+# 用户可以先把问题改一改再回车。
+_seed = st.session_state.pop("pi_seed", None)
+if _seed:
+    st.session_state.pi_input = _seed
+typed = st.chat_input("提问…", submit_mode="disable", key="pi_input")
 
-# 本轮待处理的提问: 输入条提交 或 点了示例按钮
+# 本轮待处理的提问: 只来自输入条提交(示例问题要先落到输入框里)
 pending = typed
 
 
@@ -930,7 +939,9 @@ sample_cols = st.columns([0.9, 2.2, 2.2, 2.2, 0.9], gap="small")[1:-1]
 for col, s in zip(sample_cols, samples):
     with col:
         if st.button(s, key=f"sample_{s}", width="stretch"):
-            pending = s
+            # 只填进输入框, 不直接提问(下一轮 run 由 _seed 预填)
+            st.session_state.pi_seed = s
+            st.rerun()
 
 chat_mode = bool(msgs or pending)
 

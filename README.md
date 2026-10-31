@@ -34,18 +34,17 @@
 
 ## 快速开始
 
-要求 Python **3.10+**。
+要求 Python **3.10+**（CI 覆盖 3.10 / 3.12）。
 
 ```bash
 git clone https://github.com/<your-name>/agentic_rag.git
 cd agentic_rag
 
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-source .venv/bin/activate
-pip install -r requirements.txt
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt  # 国内网络慢可加: -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-# 配置模型服务
+# 配置模型服务(Windows 用 copy)
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml
 # 编辑 secrets.toml, 填入 llm_base / llm_key / llm_model
 ```
@@ -53,10 +52,14 @@ cp .streamlit/secrets.toml.example .streamlit/secrets.toml
 启动：
 
 ```bash
-streamlit run app.py          # 或 ./run.sh / run.bat
+streamlit run app.py     # 或 python -m streamlit run app.py
+./run.sh                 # Windows: run.bat（会自动找项目内 .venv）
 ```
 
 打开 http://localhost:8503，左侧上传一份 PDF → 建立索引 → 在右侧提问。
+
+> 首次启动只有空库：`.pageindex/` 和 `uploads/` 会在第一次建索引时自动创建，不需要手工准备任何数据。
+> 还没填 key 也能打开界面，只是建索引和问答会提示补配置。
 
 ## 配置模型服务
 
@@ -120,6 +123,12 @@ uploads/          # 上传的 PDF
 
 ## 常见问题
 
+**`pip install` 卡住 / 很慢？**
+换国内镜像：`pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple`。依赖里 `litellm`、`openai-agents` 依赖树较大，首次安装几分钟属正常。
+
+**提示 `streamlit: command not found`？**
+用 `python -m streamlit run app.py`，不依赖脚本是否在 PATH 里。
+
 **改完代码刷新页面没变化？**
 `.streamlit/config.toml` 里关闭了文件监听（避免每次 rerun 扫描 `.venv` 上万文件）。改完代码重启进程即可。
 
@@ -127,7 +136,7 @@ uploads/          # 上传的 PDF
 应用在建索引前会先发一次极小的探活请求；失败时直接把网关返回的错误贴出来。先跑 `python scripts/check_llm.py` 定位是地址、Key 还是模型名的问题。
 
 **索引数据在哪？怎么清空？**
-在 `.pageindex/`，删掉目录即回到空库。`.pageindex/manifest.json` 记录文档名、页数与摘要。
+在 `.pageindex/`（固定在项目目录下，与启动时的 cwd 无关），删掉目录即回到空库。`.pageindex/manifest.json` 记录文档名、页数与摘要。
 
 **可以用哪些模型？**
 任何支持 function calling / tool use 的模型。索引阶段的摘要生成对模型能力要求不高，问答阶段建议用强一些的模型。

@@ -12,12 +12,17 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: 安装依赖
@@ -28,12 +33,24 @@ jobs:
       - name: 语法检查
         run: python -m compileall -q app.py scripts pageindex
 
-      - name: 导入自检
+      - name: 导入自检(内置 SDK)
         run: python -c "from pageindex import PageIndexClient; print('PageIndexClient ok')"
 
-      - name: 应用可启动(无模型配置也应正常渲染提示)
-        env:
-          LLM_KEY: ""
+      - name: 无配置渲染自检
+        # 模拟"刚克隆、还没填 key"的状态: 必须能渲染界面并给出配置提示, 不能抛异常
+        run: |
+          python - <<'PY'
+          from streamlit.testing.v1 import AppTest
+
+          at = AppTest.from_file("app.py", default_timeout=180).run()
+          assert not at.exception, [str(e.value) for e in at.exception]
+          assert any("llm_key" in w.value for w in at.sidebar.warning), "缺少配置提示"
+          labels = [b.label for b in at.button]
+          assert len(labels) >= 4, labels
+          print("render ok:", labels[:3])
+          PY
+
+      - name: 启动自检(真实进程)
         run: |
           python -m streamlit run app.py --server.headless true --server.port 8599 &
           for i in $(seq 1 30); do
